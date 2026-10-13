@@ -23,7 +23,7 @@ OPD is a merge: the official Krea 2 Turbo, plus the biggest tenth of the teacher
 
 ## What the teacher is
 
-The weights say the teacher holds Kroma v0.3 base whole and adds a second change as large as the base's own training, in new directions. It has no Turbo change and no baked-in guidance, and it predicts velocity the standard way, like any Krea 2 model. Its change spreads over about four times more directions than the base's, with no Kronecker or low-rank structure: a full fine-tune, with no merged LoRA or LoKr.
+The weights say the teacher holds Kroma v0.3 base whole and adds a second change as large as the base's own training, in new directions. It has no Turbo change and no baked-in guidance, and it predicts velocity the standard way, like any Krea 2 model. Its change spreads over about four times more directions than the base's and touches nearly every element. The author describes the teacher as many LoRAs merged by a non-standard method ([discussion #28](https://huggingface.co/lodestones/Kroma/discussions/28)), and the weights fit that: a sum of many LoRAs looks like this, with no single LoRA or LoKr behind it.
 
 "booru" and "e6" in the name point at its data, anime image boards and e621. It shows. Ask for "two girls in bikini on a beach" without the word "photo": the base draws a photo, the teacher draws booru anime, down to an artist's signature in the corner.
 

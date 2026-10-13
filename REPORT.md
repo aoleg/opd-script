@@ -70,7 +70,7 @@ I read the raw README and the file list through the Hub API, last modified 11 Oc
 1. OPD is rebuilt to one element in 12.8 billion from Krea 2 Turbo, Krea 2 Raw and the teacher: Turbo plus the teacher's change above the 0.9 quantile, text side from the teacher. The OPD metadata names the same inputs and `trim 0.9`.
 2. 90 % of OPD's elements equal the official Turbo bit for bit. Any training, on-policy or otherwise, would move nearly all of them.
 3. The speed comes from Krea's own distillation. The Turbo delta in OPD is complete (coefficient 1.00 in every block) and carries guidance distillation (baked-in w of about 3 to 6). Kroma adds no distillation of its own.
-4. The teacher is an ordinary full fine-tune on top of the base: it holds the base whole (coefficient 0.99) and adds a change as large as the base's own training. It defaults to booru-style anime, works at about 1 MP and breaks composition at 2.2 MP. It shows no distillation and no baked-in guidance. "Velocity" in its name fits any Krea 2 model.
+4. The teacher holds the base whole (coefficient 0.99) and adds a change as large as the base's own training. That change spreads over about four times more directions than the base's and touches nearly every element. The author describes the teacher as many LoRAs merged by a non-standard method ([discussion #28](https://huggingface.co/lodestones/Kroma/discussions/28)), and the weights fit that: no single LoRA or LoKr is behind it, and no DARE or TIES-style sparsification. It defaults to booru-style anime, works at about 1 MP and breaks composition at 2.2 MP. It shows no distillation and no baked-in guidance. "Velocity" in its name fits any Krea 2 model.
 
 | Card | Weights |
 |---|---|
@@ -84,6 +84,8 @@ I read the raw README and the file list through the Hub API, last modified 11 Oc
 ### What can be said
 
 The weights cannot tell whether the author ran on-policy distillation at all. The teacher may have been trained for such a run, and the run may have failed or stayed unpublished while a merge shipped under its name. What can be said is narrower: the published `kroma-v0.3.1-turbo-opd` is a fixed function of `raw`, `turbo` and the teacher. Anyone can rebuild it in four minutes with this script, and it holds nothing that training added.
+
+In [discussion #28](https://huggingface.co/lodestones/Kroma/discussions/28) the author says the OPD training used thousands of LoRAs trained in parallel to distill the knowledge back into Krea 2 Turbo. The published file contains Turbo, the trimmed teacher difference and the teacher's text blocks, and nothing else. If those LoRAs reached the release, they did so inside the teacher, which shows no distillation of its own.
 
 For use, this means:
 
