@@ -21,6 +21,15 @@ Four experiments:
 
 OPD is a merge: the official Krea 2 Turbo, plus the biggest tenth of the teacher's change, plus the teacher's text blocks. Its speed is Krea's own distillation. REPORT.md compares this with the model card.
 
+### What the author says
+
+In [discussion #28](https://huggingface.co/lodestones/Kroma/discussions/28) the author says the actual OPD training ran thousands of LoRAs in parallel to distill the knowledge back into Krea Turbo. Nothing in the published file supports this.
+
+- `kroma-v0.3.1-turbo-opd` holds three things: the official Turbo, 10 % of (teacher − Raw), and the teacher's text blocks. It matches that formula in all but one element. LoRAs from an OPD run could reach the release only through the teacher.
+- If they sit inside the teacher, the teacher is that run's product. Even so, its weights show no distillation: no baked-in guidance, and at 8 steps it is as blurry as the base.
+- The change added to Turbo does not look like something trained on Turbo either. It is measured from Raw, holds all of the base's own training, and was trimmed to its biggest 10 %. That recipe suits a Raw-side fine-tune.
+- The weights cannot show what the author ran. They do show that the few-step speed is Krea's official Turbo, and that Kroma's share arrived through a merge.
+
 ## What the teacher is
 
 The weights say the teacher holds Kroma v0.3 base whole and adds a second change as large as the base's own training, in new directions. It has no Turbo change and no baked-in guidance, and it predicts velocity the standard way, like any Krea 2 model. Its change spreads over about four times more directions than the base's and touches nearly every element. The author describes the teacher as many LoRAs merged by a non-standard method ([discussion #28](https://huggingface.co/lodestones/Kroma/discussions/28)), and the weights fit that: a sum of many LoRAs looks like this, with no single LoRA or LoKr behind it.
