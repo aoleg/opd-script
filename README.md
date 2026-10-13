@@ -6,9 +6,15 @@ Kroma v0.3.1 ships as `kroma-v0.3.1-turbo-opd`, a fast Turbo checkpoint said to 
 
 ## There is no distillation in OPD
 
-Four experiments, in the order I ran them:
+Here's what the [official Kroma page](https://huggingface.co/lodestones/Kroma) says about the **`kroma-v0.3.1-turbo-opd.safetensors`** checkpoint:
 
-1. **Weight differences.** I compared each Kroma file with Krea 2 Raw, tensor by tensor, against the official Turbo change (Turbo − Raw). Kroma v0.3 base holds none of it. OPD holds all of it, at full strength in every DiT block, and none in the text blocks.
+> **What OPD is:** v0.3.1 was distilled **on-policy**. Instead of the classic offline recipe — imitating the teacher on a fixed sampling schedule, which slowly pulls the student off the original data manifold — the student generates its own trajectories and the teacher corrects it **on those exact points**. Training only ever happens on states the model actually visits, so the distilled model **stays inside the original model's distribution**: Turbo speed without the usual distillation tax (mode collapse, washed-out detail, prompts that suddenly stop working).
+
+My analysis - and a bunch of experiments - demonstrate that there is no on-policy distillation in this checkpoint. Instead, it's a merge: the official Krea 2 Turbo plus the biggest 10 % of the teacher's changes to Krea 2 Raw. The teacher's text blocks are copied whole; the card gives no reason. My guess is that this was meant to keep prompt adherence for the new knowledge.
+
+Four experiments:
+
+1. **Weight differences.** I compared each Kroma file with Krea 2 Raw, tensor by tensor, against the official Turbo change (**Turbo − Raw**). Kroma v0.3 base holds none of it. OPD holds all of it, at full strength in every DiT block, and none in the text blocks.
 2. **Metadata.** OPD names its own inputs: Raw as base, Turbo as target, the teacher as fine-tune, `trim 0.9`, text blocks copied from the teacher.
 3. **Subtraction.** I removed the Turbo change from OPD exactly. Raw plus a tenth of the teacher's change was left. In every tensor, 90 % of OPD's elements equal Turbo bit for bit, and the rest equal Turbo plus the teacher's change.
 4. **Rebuild.** One formula over Raw, Turbo and the teacher gives OPD in all but one of 12.8 billion elements. Training would have moved nearly every weight. None moved.
@@ -37,7 +43,7 @@ At 1280 × 1728 (2.2 MP) it breaks. These are my own generations in Forge Neo: 1
 |---|---|
 | ![Base, two girls](img/hires-base-girls.jpg) | ![Teacher, two girls](img/hires-teach-girls.jpg) |
 
-| Base, "A photo of two women…" | Teacher, same seed | Teacher, Turbo LoRA at 1.0, 8 steps |
+| Base, "A photo of two women…", Turbo LoRA at 0.6, 12 steps | Teacher, same seed, same Turbo LoRA at 0.6, 12 steps | Teacher, but Turbo LoRA bumped to 1.0, 8 steps |
 |---|---|---|
 | ![Base, photo](img/hires-base-photo.jpg) | ![Teacher, photo](img/hires-teach-photo-lora06.jpg) | ![Teacher, photo, LoRA 1.0](img/hires-teach-photo-lora10.jpg) |
 
@@ -49,15 +55,15 @@ The same seed at three sizes, with bf16 models and the stock ER SDE and Beta sch
 
 OPD inherits the fault. Raw plus OPD's share of the teacher, at 1280 × 1728, draws three women for "two women" and swaps their feet. With the SPEED extension, which runs the first, high-noise steps at half resolution, the same seed comes out right.
 
-| Raw + OPD's teacher share | Same, with SPEED |
+| Raw + OPD's teacher share | Same, with SPEED (high-noise timesteps at half resolution) |
 |---|---|
 | ![Three women](img/hires-rawopd-photo.jpg) | ![Two women with SPEED](img/hires-rawopd-photo-speed.jpg) |
 
-## The script
+## Proof: the script
 
 The script rebuilds kroma-v0.3.1-turbo-opd from three public files. It measures what the Kroma teacher changed in Krea 2 Raw, keeps the biggest tenth of those changes in every tensor, and adds them to Krea 2 Turbo. The text side comes from the teacher whole. It reads and writes one tensor at a time, so memory use stays at a few GB.
 
-The rebuild matches the published OPD in all but one of its 12.8 billion elements. REPORT.md has the details.
+The rebuild matches the published OPD in all but one of its 12.8 billion elements. [REPORT.md](REPORT.md) has the details.
 
 ## Files
 
