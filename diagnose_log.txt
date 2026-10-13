@@ -1,0 +1,11 @@
+tensor                         dtype      numel  OPD kept top-k kept   differ    τ exact OPD min kept OPD max drop clean
+first.weight                   F32       393216   0.10000    0.10000  0.00000  4.678e-02    4.678e-02    4.678e-02  True
+tmlp.0.weight                  F32      1572864   0.10000    0.10000  0.00000  1.181e-02    1.181e-02    1.181e-02  True
+tmlp.2.weight                  F32     37748736   0.10000    0.10000  0.00000  8.008e-03    8.008e-03    8.008e-03  True
+blocks.0.attn.wq.weight        BF16    37748736   0.09986    0.10054  0.00068  1.746e-02    1.746e-02    1.746e-02  True
+blocks.13.mlp.down.weight      BF16   100663296   0.09907    0.10153  0.00246  1.343e-02    1.343e-02    1.343e-02  True
+blocks.27.attn.wo.weight       BF16    37748736   0.09982    0.10009  0.00026  8.942e-03    8.942e-03    8.942e-03  True
+blocks.5.mod.lin               F32        36864   0.10002    0.09999  0.00003  2.074e-02    2.073e-02    2.073e-02  True
+blocks.3.prenorm.scale         F32         6144   0.10010    0.09993  0.00016  1.276e-02    1.276e-02    1.275e-02  True
+tproj.1.weight                 F32    226492416   0.09892    0.10022  0.00130  1.233e-02    1.233e-02    1.233e-02  True
+last.linear.weight             F32       393216   0.10000    0.10000  0.00000  3.249e-03    3.249e-03    3.249e-03  True

@@ -1,0 +1,2 @@
+tmlp.2.weight: 1 of 37748736 differ, max |diff| 8.008e-03, |value| there 1.782e-03, dtype F32/F32
+total: 1 of 12820073036 elements differ (7.80e-11)

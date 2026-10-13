@@ -1,0 +1,20 @@
+[50/430] 0 s
+[100/430] 0 s
+[150/430] 1 s
+[200/430] 38 s
+[250/430] 104 s
+[300/430] 168 s
+[350/430] 232 s
+[400/430] 292 s
+[430/430] 294 s
+wrote kroma-v0.3.1-turbo-opd-rebuilt.safetensors
+
+prefix        identical  rel. error dtype diff
+blocks.         1.00000    0.00e+00          0
+first.          1.00000    0.00e+00          0
+last.           1.00000    0.00e+00          0
+tmlp.           1.00000    3.84e-04          0
+tproj.          1.00000    0.00e+00          0
+txtfusion.      1.00000    0.00e+00          0
+txtmlp.         1.00000    0.00e+00          0
+all             1.00000    1.27e-05
