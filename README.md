@@ -10,7 +10,7 @@ Here's what the [official Kroma page](https://huggingface.co/lodestones/Kroma) s
 
 > **What OPD is:** v0.3.1 was distilled **on-policy**. Instead of the classic offline recipe — imitating the teacher on a fixed sampling schedule, which slowly pulls the student off the original data manifold — the student generates its own trajectories and the teacher corrects it **on those exact points**. Training only ever happens on states the model actually visits, so the distilled model **stays inside the original model's distribution**: Turbo speed without the usual distillation tax (mode collapse, washed-out detail, prompts that suddenly stop working).
 
-My analysis - and a bunch of experiments - demonstrate that there is no on-policy distillation in this checkpoint. Instead, it's a merge: the official Krea 2 Turbo plus the biggest 10 % of the teacher's changes to Krea 2 Raw. The teacher's text blocks are copied whole; the card gives no reason. My guess is that this was meant to keep prompt adherence for the new knowledge.
+My analysis - and a bunch of experiments - demonstrate that there is no on-policy distillation in this checkpoint. Instead, it's a merge: **the official Krea 2 Turbo** plus the **biggest 10 % of the teacher's changes to Krea 2 Raw**. The teacher's **text blocks are copied whole**; the card gives no reason. My guess is that this was meant to keep prompt adherence for the new knowledge.
 
 Four experiments:
 
