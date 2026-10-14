@@ -53,7 +53,7 @@ In every tensor the OPD mask is a clean magnitude cut: all kept |Δ| are above a
 
 ## The model card and the weights
 
-The published OPD file holds no trace of training. It is a merge of three public files by one formula. The model card at huggingface.co/lodestones/Kroma describes it as the result of on-policy distillation.
+The published OPD file holds no training of its own: it is a merge of three public files by one formula. The model card at huggingface.co/lodestones/Kroma describes it as the result of on-policy distillation. The author's later account places that distillation inside the teacher.
 
 ### What the card says
 
@@ -70,11 +70,11 @@ I read the raw README and the file list through the Hub API, last modified 11 Oc
 1. OPD is rebuilt to one element in 12.8 billion from Krea 2 Turbo, Krea 2 Raw and the teacher: Turbo plus the teacher's change above the 0.9 quantile, text side from the teacher. The OPD metadata names the same inputs and `trim 0.9`.
 2. 90 % of OPD's elements equal the official Turbo bit for bit. Any training, on-policy or otherwise, would move nearly all of them.
 3. The speed comes from Krea's own distillation. The Turbo delta in OPD is complete (coefficient 1.00 in every block) and carries guidance distillation (baked-in w of about 3 to 6). Kroma adds no distillation of its own.
-4. The teacher holds the base whole (coefficient 0.99) and adds a change as large as the base's own training. That change spreads over about four times more directions than the base's and touches nearly every element. The author describes the teacher as many LoRAs merged by a non-standard method ([discussion #28](https://huggingface.co/lodestones/Kroma/discussions/28)), and the weights fit that: no single LoRA or LoKr is behind it, and no DARE or TIES-style sparsification. It defaults to booru-style anime, works at about 1 MP and breaks composition at 2.2 MP. It shows no distillation and no baked-in guidance. "Velocity" in its name fits any Krea 2 model.
+4. The teacher holds the base whole (coefficient 0.99) and adds a change as large as the base's own training. That change spreads over about four times more directions than the base's and touches nearly every element. The author describes the teacher as a soup of thousands of sparse adapters plus his OPD of v0.3, and the weights fit that: no single LoRA or LoKr is behind it. Its norm, modulation and bias tensors changed too, so it had dense updates as well. It defaults to booru-style anime, works at about 1 MP and breaks composition at 2.2 MP. It shows no distillation and no baked-in guidance. "Velocity" in its name fits any Krea 2 model.
 
 | Card | Weights |
 |---|---|
-| OPD trained by on-policy distillation | A merge of Turbo and the trimmed teacher − Raw difference; no trained weights |
+| OPD trained by on-policy distillation | A merge of Turbo and the trimmed teacher − Raw difference; any distillation sits inside the teacher |
 | Student trained on its own trajectories under the teacher | Every weight follows from three public files and one formula |
 | Turbo speed with no distillation tax | The speed is the official Krea 2 Turbo, taken whole with all its traits |
 | Stays close to the original distribution | True by construction: 90 % of the weights are Turbo |
@@ -83,15 +83,49 @@ I read the raw README and the file list through the Hub API, last modified 11 Oc
 
 ### What can be said
 
-The weights cannot tell whether the author ran on-policy distillation at all. The teacher may have been trained for such a run, and the run may have failed or stayed unpublished while a merge shipped under its name. What can be said is narrower: the published `kroma-v0.3.1-turbo-opd` is a fixed function of `raw`, `turbo` and the teacher. Anyone can rebuild it in four minutes with this script, and it holds nothing that training added.
-
-In [discussion #28](https://huggingface.co/lodestones/Kroma/discussions/28) the author says the OPD training used thousands of LoRAs trained in parallel to distill the knowledge back into Krea 2 Turbo. The published file contains Turbo, the trimmed teacher difference and the teacher's text blocks, and nothing else. If those LoRAs reached the release, they did so inside the teacher, which shows no distillation of its own.
+By the author's account, the on-policy distillation ran from his adapter soup into v0.3, and its result sits inside the teacher. The weights can neither confirm nor rule out that step. What they show is narrower: the published `kroma-v0.3.1-turbo-opd` is a fixed function of `raw`, `turbo` and the teacher. Anyone can rebuild it in four minutes with this script, and the merge added no training.
 
 For use, this means:
 
 - OPD's good behaviour comes almost entirely from Krea 2 Turbo. Kroma contributes a tenth of the teacher's elements, about half the energy of its change, plus the teacher's text side.
 - OPD inherits part of the teacher's faults: the booru default and the composition errors on large canvases. Both showed in raw-opd, which is OPD minus the Turbo delta.
 - A better result needs no new training. `kroma-base-trimD05-comp050-basevec` uses the same kind of sparse teacher merge on top of the whole base, halves it in the composition blocks and keeps the base's vectors, and renders cleaner.
+
+### What the author says
+
+The author answered twice: in [discussion #28](https://huggingface.co/lodestones/Kroma/discussions/28) and in a comment on this investigation. His pipeline, in plain words:
+
+1. Start from Kroma v0.3 base.
+2. Train thousands of sparse adapters on the image backbone at once. Each adapter updates its own set of salient weights, picked by gradient size, and the sets are kept apart to cut interference. He dropped LoRA because merged LoRAs drowned each other out.
+3. Distill that soup of adapters back into v0.3 on-policy, to sharpen it. This is his OPD.
+4. Move the resulting changes to Turbo with a top-K pick, budgeted at about 10 % of the DiT and all of the text side.
+
+The teacher is the soup of all of it, his OPD of v0.3 included. His OPD distills knowledge into v0.3; the Turbo speed comes from the merge. The public sparse adapter code is in [RamTorchRun 16bea9e](https://github.com/lodestone-rock/RamTorchRun/commit/16bea9e9c8afb2d9b19b33645fa62524e17e6204); he says the version he uses is messier. That code trains one adapter on `nn.Linear` weights only, keeps norms and biases frozen, picks a global top-k mask by gradient with no per-layer quota, gives each matrix the budget of a rank 8 LoRA, and trains on 1024 px buckets.
+
+| Author | Weights |
+|---|---|
+| The teacher is thousands of sparse adapters | Fits: its extra change is high rank, Gaussian, and touches 98.6 % of the elements |
+| Adapters trained at 1024 px | Fits the composition failure at 2.2 MP |
+| Adapters update matrices only | The teacher also changes all 165 norm, modulation and bias tensors (median 2.3 %, biases up to 12 %), so it had dense updates as well |
+| OPD budgeted at 10 % of the DiT | That 10 % is the merge trim: exactly 10 % per tensor, vectors included. A global salient mask has no per-layer quota |
+| OPD changes stay selectable by top-K because they got more updates | The teacher's extra change has no separate strong group: its top 10 % holds 0.44 of the energy and its top 1 % holds 0.086, as Gaussian noise does. Only `blocks.27.attn.wo` shows one |
+| The OPD changes went to Turbo | The merge took the top 10 % of teacher − Raw. Inside that mask about 30 % of the energy is v0.3's own training and about 30 % the teacher's extra change; the rest is where the two add up |
+
+### What Kroma v0.3 base is
+
+The base looks like ordinary dense fine-tuning. Its change from Raw sits in far fewer directions than the teacher's extra change, and it moves every vector and the input layers hard.
+
+| | v0.3 base (base − Raw) | Teacher's extra change (teacher − base) |
+|---|---|---|
+| Effective rank over dimension, median | 0.081 | 0.339 |
+| Stable rank, median | 11.1 | 79.5 |
+| Rank for 90 % of the energy over dimension, median | 0.19 | 0.39 |
+| Energy in the top 10 % / top 1 % of elements | 0.445 / 0.087 | 0.443 / 0.086 |
+| 1-D tensors changed | 165 of 165, median 2.5 %, `mod.lin` up to 11.6 % | 165 of 165, median 2.3 % |
+| Input projection `first.weight` | 52 % | 8 % |
+| Timestep MLP `tmlp.0.weight` | 78 % | 19 % |
+
+Thousands of sparse adapters that cover the model spread over many directions, the way the teacher's extra change does. The base concentrates its change, as full fine-tuning does, and the card calls v0.2 a continued full fine-tune. Rank alone cannot prove the method: a few large dense adapters merged together would look similar.
 
 ## Run
 

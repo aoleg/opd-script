@@ -4,35 +4,46 @@
 
 Kroma v0.3.1 ships as `kroma-v0.3.1-turbo-opd`, a fast Turbo checkpoint said to come from on-policy distillation (OPD) with `kroma-sensei-booru-e6-teacher-velocity-v0.3` as the teacher. I wanted to learn how that distillation works: what the teacher passed on, and where it shows in the weights.
 
-## There is no distillation in OPD
+## The speed comes from Krea 2 Turbo
 
 Here's what the [official Kroma page](https://huggingface.co/lodestones/Kroma) says about the **`kroma-v0.3.1-turbo-opd.safetensors`** checkpoint:
 
 > **What OPD is:** v0.3.1 was distilled **on-policy**. Instead of the classic offline recipe — imitating the teacher on a fixed sampling schedule, which slowly pulls the student off the original data manifold — the student generates its own trajectories and the teacher corrects it **on those exact points**. Training only ever happens on states the model actually visits, so the distilled model **stays inside the original model's distribution**: Turbo speed without the usual distillation tax (mode collapse, washed-out detail, prompts that suddenly stop working).
 
-My analysis - and a bunch of experiments - demonstrate that there is no on-policy distillation in this checkpoint. Instead, it's a merge: **the official Krea 2 Turbo** plus the **biggest 10 % of the teacher's changes to Krea 2 Raw**. The teacher's **text blocks are copied whole**; the card gives no reason. My guess is that this was meant to keep prompt adherence for the new knowledge.
+My analysis - and a bunch of experiments - show that this checkpoint is a merge: **the official Krea 2 Turbo** plus the **biggest 10 % of the teacher's changes to Krea 2 Raw**, with the teacher's **text blocks copied whole**. The few-step speed is Krea's own distillation. The author's on-policy distillation happened earlier, inside the teacher; his account is below.
 
 Four experiments:
 
 1. **Weight differences.** I compared each Kroma file with Krea 2 Raw, tensor by tensor, against the official Turbo change (**Turbo − Raw**). Kroma v0.3 base holds none of it. OPD holds all of it, at full strength in every DiT block, and none in the text blocks.
 2. **Metadata.** OPD names its own inputs: Raw as base, Turbo as target, the teacher as fine-tune, `trim 0.9`, text blocks copied from the teacher.
 3. **Subtraction.** I removed the Turbo change from OPD exactly. Raw plus a tenth of the teacher's change was left. In every tensor, 90 % of OPD's elements equal Turbo bit for bit, and the rest equal Turbo plus the teacher's change.
-4. **Rebuild.** One formula over Raw, Turbo and the teacher gives OPD in all but one of 12.8 billion elements. Training would have moved nearly every weight. None moved.
+4. **Rebuild.** One formula over Raw, Turbo and the teacher gives OPD in all but one of 12.8 billion elements. Training on top of the merge would have moved nearly every weight. None moved.
 
 OPD is a merge: the official Krea 2 Turbo, plus the biggest tenth of the teacher's change, plus the teacher's text blocks. Its speed is Krea's own distillation. REPORT.md compares this with the model card.
 
 ### What the author says
 
-In [discussion #28](https://huggingface.co/lodestones/Kroma/discussions/28) the author says the actual OPD training ran thousands of LoRAs in parallel to distill the knowledge back into Krea Turbo. Nothing in the published file supports this.
+The author answered twice: in [discussion #28](https://huggingface.co/lodestones/Kroma/discussions/28) and in a comment on this investigation. His pipeline, in plain words:
 
-- `kroma-v0.3.1-turbo-opd` holds three things: the official Turbo, 10 % of (teacher − Raw), and the teacher's text blocks. It matches that formula in all but one element. LoRAs from an OPD run could reach the release only through the teacher.
-- If they sit inside the teacher, the teacher is that run's product. Even so, its weights show no distillation: no baked-in guidance, and at 8 steps it is as blurry as the base.
-- The change added to Turbo does not look like something trained on Turbo either. It is measured from Raw, holds all of the base's own training, and was trimmed to its biggest 10 %. That recipe suits a Raw-side fine-tune.
-- The weights cannot show what the author ran. They do show that the few-step speed is Krea's official Turbo, and that Kroma's share arrived through a merge.
+1. Start from Kroma v0.3 base.
+2. Train thousands of sparse adapters on the image backbone at once. Each adapter updates its own set of salient weights, picked by gradient size, and the sets are kept apart to cut interference. He dropped LoRA because merged LoRAs drowned each other out.
+3. Distill that soup of adapters back into v0.3 on-policy, to sharpen it. This is his OPD.
+4. Move the resulting changes to Turbo with a top-K pick, budgeted at about 10 % of the DiT and all of the text side.
+
+The teacher is the soup of all of it, his OPD of v0.3 included. His OPD distills knowledge into v0.3; the Turbo speed comes from the merge. The public sparse adapter code is in [RamTorchRun 16bea9e](https://github.com/lodestone-rock/RamTorchRun/commit/16bea9e9c8afb2d9b19b33645fa62524e17e6204); he says the version he uses is messier. That code trains one adapter on `nn.Linear` weights only, keeps norms and biases frozen, picks a global top-k mask by gradient with no per-layer quota, gives each matrix the budget of a rank 8 LoRA, and trains on 1024 px buckets.
+
+| Author | Weights |
+|---|---|
+| The teacher is thousands of sparse adapters | Fits: its extra change is high rank, Gaussian, and touches 98.6 % of the elements |
+| Adapters trained at 1024 px | Fits the composition failure at 2.2 MP |
+| Adapters update matrices only | The teacher also changes all 165 norm, modulation and bias tensors (median 2.3 %, biases up to 12 %), so it had dense updates as well |
+| OPD budgeted at 10 % of the DiT | That 10 % is the merge trim: exactly 10 % per tensor, vectors included. A global salient mask has no per-layer quota |
+| OPD changes stay selectable by top-K because they got more updates | The teacher's extra change has no separate strong group: its top 10 % holds 0.44 of the energy and its top 1 % holds 0.086, as Gaussian noise does. Only `blocks.27.attn.wo` shows one |
+| The OPD changes went to Turbo | The merge took the top 10 % of teacher − Raw. Inside that mask about 30 % of the energy is v0.3's own training and about 30 % the teacher's extra change; the rest is where the two add up |
 
 ## What the teacher is
 
-The weights say the teacher holds Kroma v0.3 base whole and adds a second change as large as the base's own training, in new directions. It has no Turbo change and no baked-in guidance, and it predicts velocity the standard way, like any Krea 2 model. Its change spreads over about four times more directions than the base's and touches nearly every element. The author describes the teacher as many LoRAs merged by a non-standard method ([discussion #28](https://huggingface.co/lodestones/Kroma/discussions/28)), and the weights fit that: a sum of many LoRAs looks like this, with no single LoRA or LoKr behind it.
+The weights say the teacher holds Kroma v0.3 base whole and adds a second change as large as the base's own training, in new directions. It has no Turbo change and no baked-in guidance, and it predicts velocity the standard way, like any Krea 2 model. Its change spreads over about four times more directions than the base's and touches nearly every element. The author describes it as a soup of thousands of sparse adapters plus his OPD of v0.3, and the weights fit that: thousands of sparse updates that together cover the model look like this, with no single LoRA or LoKr behind them. Kroma v0.3 base looks different. Its change sits in far fewer directions and moves every norm and modulation vector, the input projection and the timestep MLP, the way ordinary dense training does. REPORT.md has the numbers.
 
 "booru" and "e6" in the name point at its data, anime image boards and e621. It shows. Ask for "two girls in bikini on a beach" without the word "photo": the base draws a photo, the teacher draws booru anime, down to an artist's signature in the corner.
 
